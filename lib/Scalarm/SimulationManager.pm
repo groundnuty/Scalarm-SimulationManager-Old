@@ -6,14 +6,16 @@ use warnings ;
 our $VERSION = '0.01';
 
 use Log::Log4perl qw(:easy);
-Log::Log4perl->easy_init($ERROR);
+my $log_conf = "log4perl.conf";
+Log::Log4perl->init($log_conf);
+
 
 use Mojo::JSON;
 use Test::More ;
 
 sub load_config {
 	my ($config_file) = @_;
-	open(my $config_handle, '<', $config_file) or die "Can't open $config_file : $!";
+	open(my $config_handle, '<', $config_file) or FATAL("Can't open $config_file : $!");
 	my $config_raw = do {local $/; <$config_handle> };
 	my $json = Mojo::JSON->new;
 	my $config = $json->decode($config_raw);
@@ -47,24 +49,56 @@ sub prepare_experiment {
 sub  get_experiment_repository {
 	my ($em_proxy) = @_;
 	if( not -e $em_proxy->code_base_dir) {
-  		my $code_base = $em_proxy->download_code_base;
+  		my $code_base = $em_proxy->download_code_base();
 
-  		
-  		#TODO przepisaćcto na Archive::Zip
-  		my @cmd = ('unzip', ' -d ', $em_proxy->code_base_dir," ", $code_base);
-  		ERROR @cmd;
-  		system @cmd;
-  		
-  		my @files = <./$code_base/*>;
-  		foreach my $file (@files) {
-    		if (-f $file) {
-    			ERROR $file;
-        		#chmod(0777, $file);
-    		}
+		my (@cmd, $output) ;
+  		#$em_proxy->code_base_dir
+  		#TODO rewrite to use Archive::Zip
+  		@cmd = ('unzip','-d',$em_proxy->code_base_dir, $code_base);
+  		$output = `@cmd`;
+  		if ( $? != 0 ) {
+			FATAL("@cmd command failed: $!\n");
+		} else {
+			TRACE("Successfully unzipped ".$code_base);
+			TRACE($output);
+		}
+
+
+		@cmd = ('unzip','-d',$em_proxy->code_base_dir, $em_proxy->code_base_dir."/simulation_binaries.zip");
+  		$output = `@cmd`;
+  		if ( $? != 0 ) {
+			FATAL("@cmd command failed: $!\n");
+		} else {
+			TRACE("Successfully unzipped ".$em_proxy->code_base_dir."/simulation_binaries.zip");
+			TRACE($output);
+		}
+		
+		sub traverse {
+  			my ($path) = @_;
+  			my @files = <$path/*>;
+  			#było a+x, proponuje:
+  			chmod(0755, $path)  or ERROR("Cannot change permissions on file: $path");	
+  			TRACE("Changed permissions of directory $path 0755");
+  			foreach my $file (@files) {
+    			if (-f $file) {   
+    				#było 0777, proponuje:
+    				chmod(0744, $file) or ERROR("Cannot change permissions on file: $file");
+    				TRACE("Changed permissions of file $file 0777");
+    			} elsif (-d $file) {
+    				traverse($file);
+    			} else {
+    				WARN("$file. not recognized as file not directory.")
+    			}
+  			}
   		}
+  		traverse($em_proxy->code_base_dir);
 
-  	#ORZECH: tu pewnie jest blad
-  	#chmod(0777, $code_base_dir);
+		if($? == 0){
+			INFO("Unzipped and chmod-ed the content of $code_base"); 
+			@cmd = ('ls',' -alR', $em_proxy->code_base_dir);		
+			INFO(qx/@cmd/);
+		}
+
 	}
 }
 

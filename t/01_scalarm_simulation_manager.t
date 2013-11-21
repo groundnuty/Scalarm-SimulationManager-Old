@@ -3,7 +3,6 @@
 use strict;
 use warnings;
 use Test::More ;
-use Test::MockObject;
 
 BEGIN {
 	use_ok('Scalarm::SimulationManager')
@@ -11,10 +10,11 @@ BEGIN {
 }
  
 {
-	#PREPARE
-	use Test::TempDir;
+	use File::Temp qw/ tempfile tempdir /;
+
+	#PREPARE	
 	can_ok('Scalarm::SimulationManager','load_config');
-	my $test_tempdir = temp_root();
+	my $test_tempdir = File::Temp->newdir();
 	
 	my $test_config_file_content = qq(
 	{
@@ -55,29 +55,63 @@ BEGIN {
 
 
 {
+		use Test::MockObject;
+		use File::Temp qw/ tempfile tempdir /;
+		use File::Copy qw(copy);
+		
 		#PREPARE
-		use File::Copy;
-		use Test::TempDir;
 		can_ok('Scalarm::SimulationManager','get_experiment_repository');
 
-		my $test_tempdir = temp_root();
-		diag($test_tempdir);
+		my $test_tempdir = File::Temp->newdir();
 		my $test_file_name = "test_code_base.zip";
-		my $source = "./t/resouces/$test_file_name";
-		my $destination = "$test_tempdir/$test_file_name";
-		copy($source ,$destination) ;
+		#This file is expected to contain into:
+		my @files = (
+			"input_writer",
+			"executor",
+			"output_reader",
+			"progress_monitor",
+			"simulation_binaries.zip",
+		);
+		#simulation_binaries.zip is expected to contain:
+		my @sfiles = (
+			"simulation_binaries"
+		);
 
+		my $source = "t/resources/$test_file_name";
+		my $destination = "$test_tempdir/$test_file_name";
+		copy($source ,$destination) or die "Copy failed: $!" ;
+		ok(-e $destination, "Check if file was copied at all.");
 
 		my $experiment_manager_mock = Test::MockObject->new();
 		$experiment_manager_mock ->mock('download_code_base', sub { return $destination });
 
 		#TODO nie podoba mi sie zahardocowane code_base
-		$experiment_manager_mock ->mock('code_base_dir', sub { return "$test_tempdir/code_base_dir"});
+		$experiment_manager_mock ->mock('code_base_dir', sub { return "$test_tempdir/code_base"});
 
 		#EXECUTE
 		Scalarm::SimulationManager::get_experiment_repository($experiment_manager_mock);
 
+
 		#ASSERT
+		ok(-e -d $experiment_manager_mock->code_base_dir, "Check if 'code base' directory was created.");
+		ok(-e -f $experiment_manager_mock->code_base_dir."/".$files[0], "Check if file '$files[0]' was extracted.");
+		ok(-e -f $experiment_manager_mock->code_base_dir."/".$files[1], "Check if file '$files[1]' was extracted.");
+		ok(-e -f $experiment_manager_mock->code_base_dir."/".$files[2], "Check if file '$files[2]' was extracted.");
+		ok(-e -f $experiment_manager_mock->code_base_dir."/".$files[3], "Check if file '$files[3]' was extracted.");
+		ok(-e -f $experiment_manager_mock->code_base_dir."/".$files[4], "Check if file '$files[4]' was extracted.");
+
+		ok(-e -d $experiment_manager_mock->code_base_dir."/".$sfiles[0], "Check if directory '$sfiles[0]' was created.");
+
+		#TODO: Those tests only cover users permissions not group nor all
+		ok(-r -w -x $experiment_manager_mock->code_base_dir."/".$files[0], "Check if file '$files[0]' has permissions set.");
+		ok(-r -w -x $experiment_manager_mock->code_base_dir."/".$files[1], "Check if file '$files[1]' has permissions set.");
+		ok(-r -w -x  $experiment_manager_mock->code_base_dir."/".$files[2], "Check if file '$files[2]' has permissions set.");
+		ok(-r -w -x  $experiment_manager_mock->code_base_dir."/".$files[3], "Check if file '$files[3]' has permissions set.");
+		ok(-r -w -x  $experiment_manager_mock->code_base_dir."/".$files[4], "Check if file '$files[4]' has permissions set.");
+
+		ok(-e -r -w -x $experiment_manager_mock->code_base_dir."/".$sfiles[0], "Check if directory '$sfiles[0]' was created.");
+
+
 }
 
 
