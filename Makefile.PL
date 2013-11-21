@@ -16,6 +16,10 @@ WriteMakefile(
     },
     BUILD_REQUIRES => {
         'Test::More' => 0,
+        'File::Temp' => 0,
+        'File::Copy' => 0,
+        'Test::MockObject' => 0,
+        'Log::Log4perl' => 0
     },
     PREREQ_PM => {
         #'ABC'              => 1.6,
