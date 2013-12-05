@@ -1,0 +1,6 @@
+#!/usr/bin/env ruby
+require 'json'
+
+results = [1, 2, 4, 6, 8, 10]
+
+File.open('output.json', 'w'){ |f| f.puts({ 'status' => 'ok', 'results' => { 'result' => results.sample } }.to_json) }

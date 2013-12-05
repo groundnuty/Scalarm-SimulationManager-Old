@@ -1,0 +1,6 @@
+#!/usr/bin/env ruby
+require 'json'
+
+File.open('output.json', 'w'){ |f| f.puts({ 'status' => 'ok', 'results' => { 'result' => 1 } }.to_json) }
+
+%x[tar czvf output.tar.gz output.json]

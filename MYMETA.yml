@@ -1,0 +1,26 @@
+---
+abstract: unknown
+author:
+  - 'Michal Orzechowski <morzch@agh.edu.pl>'
+build_requires:
+  File::Copy: 0
+  File::Temp: 0
+  Log::Log4perl: 0
+  Test::MockObject: 0
+  Test::More: 0
+configure_requires:
+  ExtUtils::MakeMaker: 0
+dynamic_config: 0
+generated_by: 'ExtUtils::MakeMaker version 6.82, CPAN::Meta::Converter version 2.132830'
+license: unknown
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.4.html
+  version: 1.4
+name: Scalarm-SimulationManager
+no_index:
+  directory:
+    - t
+    - inc
+requires:
+  perl: 5.006
+version: 0.01

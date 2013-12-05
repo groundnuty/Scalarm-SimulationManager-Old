@@ -1,5 +1,4 @@
 package Mojo::Base;
-
 use strict;
 use warnings;
 use utf8;
